@@ -1,0 +1,46 @@
+#### 1) Function to calculate relative abundances ####
+## Arguments: 
+# data: database with sequencing reads
+
+renormalize <- function(data){
+  total_abundances <- colSums((data))
+  for (col in 1:ncol(data)) data[,col] <- data[col]/total_abundances[col]
+  return(data)
+}
+
+
+#### 2) Function to perform pairwise adonis ####
+
+## Arguments: 
+# x: database
+# factors: list with groups for pairwise comparisons
+# sim.method: the name of any method used in vegdist to calculate pairwise distances
+# p.adjust.m: P correction method
+# permut: number of permutations
+
+
+pairwise.adonis <- function(x,factors, sim.method, p.adjust.m, permut=10000)
+{
+  library(vegan)
+  co = as.matrix(combn(unique(factors),2))
+  pairs = c()
+  F.Model =c()
+  R2 = c()
+  p.value = c()
+  
+  for(elem in 1:ncol(co)){
+    ad = adonis(x[factors %in% c(as.character(co[1,elem]),as.character(co[2,elem])),] ~ 
+                  factors[factors %in% c(as.character(co[1,elem]),as.character(co[2,elem]))] , method =sim.method,
+                permutations=permut);
+    pairs = c(pairs,paste(co[1,elem],'vs',co[2,elem]));
+    F.Model =c(F.Model,ad$aov.tab[1,4]);
+    R2 = c(R2,ad$aov.tab[1,5]);
+    p.value = c(p.value,ad$aov.tab[1,6])
+  }
+  p.adjusted = p.adjust(p.value,method=p.adjust.m)
+  pairw.res = data.frame(pairs,F.Model,R2,p.value,p.adjusted)
+  return(pairw.res)
+}
+
+
+
