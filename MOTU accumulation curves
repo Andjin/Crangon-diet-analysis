@@ -1,5 +1,5 @@
 #### Functions to produce MOTU accumulation curves based on rarefied relative abundances ####
-## Result: a matrix with 
+#Credit: Owen S. Wangensteen
 
 ### Step 1: rarefy samples ###
 ## Arguments:
