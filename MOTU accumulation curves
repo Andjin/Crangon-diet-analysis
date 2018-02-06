@@ -1,0 +1,68 @@
+#### Functions to produce MOTU accumulation curves based on rarefied relative abundances ####
+## Result: a matrix with 
+
+### Step 1: rarefy samples ###
+## Arguments:
+# db_sample: database with relative abundances
+# rarefaction_size: number of reads to rarefy to
+# replicates: Number of replicate permutations 
+
+
+
+rarefy_sample <- function(db_sample,rarefaction_size=250,replicates=500){ # warning! The data_frame needs to have rownames with the MOTU ids
+  total_reads <- sum(db_sample)
+  row_names <- rownames((db_sample))
+  mat_rep <- matrix(NA,nrow(db_sample),replicates)
+  for (re in 1:replicates){
+      vect <- sample(rownames(db_sample)[db_sample[,1]>0],size=rarefaction_size,replace=T,prob=db_sample[db_sample>0,1]/total_reads)
+      presence <- NULL
+      for (i in 1:nrow(db_sample)) presence[i] <- ifelse(row_names[i] %in% vect,1,0)
+      mat_rep[,re] <- presence
+  }
+  return(mat_rep)
+}
+## Result: a list with N matrixes. Each column is a replicate permutation. N = Ncol of db_sample
+
+
+### Step 2: Calculate MOTU richness ###
+## Arguments: 
+# estuary_matrix: matrix list; output from Step 1
+# replicates: Number of replicate permutations 
+
+rarefy_estuary <- function(estuary_matrix,replicates){
+  total_samples <- length(estuary_matrix)
+  matrix_diversities <- matrix(NA,nrow = replicates,ncol=total_samples)
+    for (j in 1:total_samples){
+      vector_diversities <- NULL
+      for (re in 1:replicates){
+          selected_samples <- sample(1:total_samples,j,replace = F)
+          selected_columns <- sample(1:ncol(estuary_matrix[[1]]),j,replace=T)
+          sampled_full_matrix <- NULL
+          for (i in 1:j)
+              sampled_full_matrix <- cbind(sampled_full_matrix,estuary_matrix[[selected_samples[i]]][,selected_columns[i]])
+              diversity_sample <- sum(rowSums(sampled_full_matrix)>0)
+              if (diversity_sample==0) {
+                message("ERROR! Diversity of a sample is 0")
+                break
+              }
+          vector_diversities <- c(vector_diversities,diversity_sample)
+      }
+      matrix_diversities[,j] <- vector_diversities
+    }
+  return(matrix_diversities)
+  colnames(matrix_diversities) <- 1:total_samples
+}
+
+## Result: a list matrix: Columns: Ncol of db_sample; Rows: replicates
+
+### Step 3: Plot MOTU accumulation curves ###
+## Arguments: 
+# vect_div: matrix; output from Step 2
+
+plot(x=1:ncol(vect_div),y=colMeans(vect_div),type="l",col="skyblue",ylim=c(0,500),xlim=c(0,15),xlab="Number of samples",ylab="MOTU richness")
+sd_samples <- apply(vect_div,2,sd)
+arrows(1:ncol(vect_div),colMeans(vect_div),1:ncol(vect_div),colMeans(vect_div)+1*sd_samples,angle = 90,col="skyblue",length = .1)
+arrows(1:ncol(vect_div),colMeans(vect_div),1:ncol(vect_div),colMeans(vect_div)-1*sd_samples,angle = 90,col="skyblue",length = .1)
+par(new=T)
+
+## Result: Plot of MOTU accumulation curve of the mean +/-SD rarefied MOTU richness for Ncol in db_sample
