@@ -1,4 +1,5 @@
 #### 1) Function to calculate relative abundances ####
+#Credit: Owen S. Wangensteen
 ## Arguments: 
 # data: database with sequencing reads
 
